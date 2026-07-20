@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+venv/
+.env
+
+# Streamlit
+.streamlit/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated Files
+generated/*.json
+generated/*.txt
+
+# (Optional)
+# Agar generated HTML commit nahi karna chahte ho:
+# generated/index.html
