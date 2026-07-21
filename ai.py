@@ -1,25 +1,31 @@
 import os
 import json
+import requests
 
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# ==========================================================
+# GROQ CLIENT
+# ==========================================================
+
 client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
+MODEL = "llama-3.3-70b-versatile"
 
 # ==========================================================
-# COMMON GROQ FUNCTION
+# COMMON AI FUNCTION
 # ==========================================================
 
 def ask_ai(prompt, temperature=0.2):
 
     response = client.chat.completions.create(
 
-        model="llama-3.3-70b-versatile",
+        model=MODEL,
 
         messages=[
             {
@@ -29,54 +35,17 @@ def ask_ai(prompt, temperature=0.2):
         ],
 
         temperature=temperature
+
     )
 
     return response.choices[0].message.content.strip()
+
+
 # ==========================================================
-# PORTFOLIO JSON GENERATOR
+# CLEAN JSON
 # ==========================================================
 
-def generate_portfolio_json(resume_text):
-
-    prompt = f"""
-You are an expert resume parser.
-
-Convert the following resume into ONLY valid JSON.
-
-Rules:
-
-- Return ONLY JSON.
-- No markdown.
-- No explanation.
-- No extra text.
-
-Structure:
-
-{{
-    "name":"",
-    "headline":"",
-    "about":"",
-    "skills":[],
-    "projects":[],
-    "education":[],
-    "experience":[],
-    "certifications":[],
-    "github":"",
-    "linkedin":"",
-    "email":"",
-    "phone":""
-}}
-
-Resume:
-
-{resume_text}
-"""
-
-    text = ask_ai(prompt)
-
-    # ==========================================
-    # Remove Markdown
-    # ==========================================
+def clean_json(text):
 
     text = text.strip()
 
@@ -90,118 +59,81 @@ Resume:
 
     if text.endswith("```"):
 
-        text = text.replace("```", "")
+        text = text[:-3]
 
-    text = text.strip()
+    return text.strip()
 
-    # ==========================================
-    # Parse JSON
-    # ==========================================
-
-    try:
-
-        data = json.loads(text)
-
-    except Exception:
-
-        start = text.find("{")
-
-        end = text.rfind("}") + 1
-
-        if start != -1 and end != -1:
-
-            data = json.loads(text[start:end])
-
-        else:
-
-            raise Exception(
-                "AI returned invalid JSON."
-            )
-
-    # ==========================================
-    # Ensure All Keys Exist
-    # ==========================================
-
-    defaults = {
-
-        "name": "",
-
-        "headline": "",
-
-        "about": "",
-
-        "skills": [],
-
-        "projects": [],
-
-        "education": [],
-
-        "experience": [],
-
-        "certifications": [],
-
-        "github": "",
-
-        "linkedin": "",
-
-        "email": "",
-
-        "phone": ""
-
-    }
-
-    for key, value in defaults.items():
-
-        if key not in data:
-
-            data[key] = value
-
-    return data
 
 # ==========================================================
-# AI RESUME REVIEW
+# PORTFOLIO JSON
+# ==========================================================
+
+def generate_portfolio_json(resume_text):
+
+    prompt = f"""
+You are an expert Resume Parser.
+
+Convert the resume into ONLY valid JSON.
+
+Return ONLY JSON.
+
+Structure:
+
+{{
+"name":"",
+"headline":"",
+"about":"",
+"skills":[],
+"projects":[],
+"education":[],
+"experience":[],
+"certifications":[],
+"github":"",
+"linkedin":"",
+"email":"",
+"phone":""
+}}
+
+Resume:
+
+{resume_text}
+"""
+
+    response = ask_ai(prompt)
+
+    response = clean_json(response)
+
+    return json.loads(response)
+
+
+# ==========================================================
+# RESUME REVIEW
 # ==========================================================
 
 def review_resume(resume_text):
 
     prompt = f"""
-You are an expert ATS Resume Reviewer.
+You are a Senior Technical Recruiter.
 
-Review the following resume professionally.
+Review the following resume.
 
-Return the response in Markdown.
+Give:
 
-Use the following structure:
+1. Overall Score /100
 
-# Resume Score (out of 100)
+2. ATS Score
 
-# Strengths
+3. Strong Points
 
-- Point 1
-- Point 2
-- Point 3
+4. Weak Points
 
-# Weaknesses
+5. Missing Skills
 
-- Point 1
-- Point 2
-- Point 3
+6. Grammar Suggestions
 
-# ATS Improvements
+7. Formatting Suggestions
 
-- Point 1
-- Point 2
-- Point 3
-
-# Technical Suggestions
-
-- Point 1
-- Point 2
-
-# HR Suggestions
-
-- Point 1
-- Point 2
+8. Final Verdict
 
 Resume:
 
@@ -210,46 +142,27 @@ Resume:
 
     return ask_ai(
         prompt,
-        temperature=0.3
+        temperature=0.4
     )
-
 # ==========================================================
-# AI RESUME IMPROVER
+# IMPROVE RESUME
 # ==========================================================
 
 def improve_resume(resume_text):
 
     prompt = f"""
-You are a Senior Resume Writer and ATS Expert.
+You are an expert ATS Resume Writer.
 
 Rewrite the following resume professionally.
 
-Requirements:
+Rules:
 
-- Keep all original information.
-- Improve grammar and wording.
-- Make it ATS-friendly.
-- Use strong action verbs.
-- Improve project descriptions.
-- Improve summary.
-- Improve skills section.
-- Improve formatting.
-- Do NOT invent fake experience or projects.
-- Return the response in Markdown format.
-
-Structure:
-
-# Professional Summary
-
-# Technical Skills
-
-# Projects
-
-# Experience
-
-# Education
-
-# Certifications
+- ATS Friendly
+- Better Bullet Points
+- Strong Action Verbs
+- Professional Formatting
+- Do not invent fake experience.
+- Return only the improved resume.
 
 Resume:
 
@@ -261,28 +174,21 @@ Resume:
         temperature=0.4
     )
 
+
 # ==========================================================
-# AI COVER LETTER GENERATOR
+# COVER LETTER
 # ==========================================================
 
-def generate_cover_letter(resume_text, company_name="Your Company"):
+def generate_cover_letter(resume_text):
 
     prompt = f"""
-You are an expert HR Recruiter and Professional Resume Writer.
+Generate a professional cover letter based on this resume.
 
-Using the resume below, write a professional cover letter.
+Keep it:
 
-Requirements:
-
-- Address the company as "{company_name}".
-- Keep it within 300-400 words.
-- Use a professional tone.
-- Highlight the candidate's technical skills.
-- Mention projects naturally.
-- Mention enthusiasm for the role.
-- End with a professional closing.
-- Do NOT invent fake experience.
-- Return ONLY the cover letter in Markdown.
+- Professional
+- One Page
+- Suitable for Software Engineer / AI / ML roles
 
 Resume:
 
@@ -294,60 +200,27 @@ Resume:
         temperature=0.5
     )
 
+
 # ==========================================================
-# AI INTERVIEW QUESTION GENERATOR
+# INTERVIEW QUESTIONS
 # ==========================================================
 
 def generate_interview_questions(resume_text):
 
     prompt = f"""
-You are an experienced Technical Interviewer.
+Based on this resume generate interview questions.
 
-Based on the candidate's resume, generate interview questions.
+Include:
 
-Return the response in Markdown.
+Technical Questions
 
-Use this structure:
+Project Questions
 
-# Technical Questions
+HR Questions
 
-1.
-2.
-3.
-4.
-5.
+Behavioral Questions
 
-# Project Based Questions
-
-1.
-2.
-3.
-4.
-5.
-
-# HR Questions
-
-1.
-2.
-3.
-4.
-5.
-
-# Coding Questions
-
-1.
-2.
-3.
-4.
-5.
-
-# Preparation Tips
-
-- Tip 1
-- Tip 2
-- Tip 3
-- Tip 4
-- Tip 5
+Coding Questions
 
 Resume:
 
@@ -356,5 +229,101 @@ Resume:
 
     return ask_ai(
         prompt,
-        temperature=0.4
+        temperature=0.5
     )
+
+
+# ==========================================================
+# GITHUB PROFILE
+# ==========================================================
+
+def get_github_profile(username):
+
+    if not username:
+
+        return None
+
+    try:
+
+        url = f"https://api.github.com/users/{username}"
+
+        response = requests.get(
+            url,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+
+            return None
+
+        data = response.json()
+
+        return {
+
+            "name": data.get("name"),
+
+            "login": data.get("login"),
+
+            "bio": data.get("bio"),
+
+            "followers": data.get("followers"),
+
+            "following": data.get("following"),
+
+            "public_repos": data.get("public_repos"),
+
+            "avatar_url": data.get("avatar_url"),
+
+            "html_url": data.get("html_url")
+
+        }
+
+    except Exception:
+
+        return None
+
+
+# ==========================================================
+# LEETCODE PROFILE
+# ==========================================================
+
+def get_leetcode_profile(username):
+
+    if not username:
+
+        return None
+
+    try:
+
+        return {
+
+            "username": username,
+
+            "profile": f"https://leetcode.com/{username}/",
+
+            "solved": "N/A",
+
+            "ranking": "N/A"
+
+        }
+
+    except Exception:
+
+        return None
+
+
+# ==========================================================
+# HEALTH CHECK
+# ==========================================================
+
+def check_api():
+
+    try:
+
+        ask_ai("Reply with only OK.")
+
+        return True
+
+    except Exception:
+
+        return False

@@ -24,3 +24,17 @@ generated/*.txt
 # (Optional)
 # Agar generated HTML commit nahi karna chahte ho:
 # generated/index.html
+
+# Generated files
+generated/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+.venv/

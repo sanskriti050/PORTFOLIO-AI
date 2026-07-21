@@ -1,20 +1,29 @@
-import json
 import os
+import json
 import webbrowser
 
 import streamlit as st
 import streamlit.components.v1 as components
 
 from parser import extract_text
+
 from ai import (
     generate_portfolio_json,
     review_resume,
     improve_resume,
     generate_cover_letter,
-    generate_interview_questions
+    generate_interview_questions,
+    get_github_profile,
+    get_leetcode_profile
 )
 
-from generator import generate_portfolio
+from generator import (
+    generate_portfolio,
+    generate_zip,
+    generate_pdf,
+    export_github_pages,
+    export_netlify
+)
 
 from styles import load_css
 
@@ -22,7 +31,7 @@ from components import (
     hero,
     stats,
     feature_cards,
-    footer,
+    footer
 )
 
 # ==========================================================
@@ -33,23 +42,23 @@ st.set_page_config(
     page_title="PortfolioAI",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="collapsed"
 )
 
 # ==========================================================
-# LOAD CUSTOM CSS
+# LOAD CSS
 # ==========================================================
 
 st.markdown(
     load_css(),
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # ==========================================================
-# SESSION STATE
+# DEFAULT SESSION STATE
 # ==========================================================
 
-DEFAULT_SESSION = {
+DEFAULT_STATE = {
 
     "resume_text": "",
 
@@ -57,28 +66,48 @@ DEFAULT_SESSION = {
 
     "portfolio_file": None,
 
-    "resume_review": "",
-
-    "improved_resume": "",
-
-    "cover_letter": "",
+    "generated": False,
 
     "theme": "Modern",
 
-    "generated": False,
+    "color": "#38bdf8",
 
-    "error": None,
+    "font": "Poppins",
+
+    "profile_image": None,
+
+    "github_username": "",
+
+    "leetcode_username": "",
+
+    "github_data": None,
+
+    "leetcode_data": None,
+
+    "resume_review": "",
+
+    "resume_improved": "",
+
+    "cover_letter": "",
+
+    "interview_questions": "",
+
+    "zip_file": None,
+
+    "pdf_file": None,
+
+    "error": None
 
 }
 
-for key, value in DEFAULT_SESSION.items():
+for key, value in DEFAULT_STATE.items():
 
     if key not in st.session_state:
 
         st.session_state[key] = value
 
 # ==========================================================
-# PAGE HEADER
+# HEADER
 # ==========================================================
 
 hero()
@@ -92,26 +121,7 @@ feature_cards()
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================================
-# PAGE TITLE
-# ==========================================================
-
-st.markdown(
-    """
-    <h2 style='text-align:center;'>
-        🚀 AI Powered Portfolio Generator
-    </h2>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.caption(
-    "Upload your resume and let AI build a professional portfolio website, review your resume, improve content and generate a cover letter."
-)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ==========================================================
-# MAIN DASHBOARD
+# MAIN LAYOUT
 # ==========================================================
 
 left, right = st.columns([1, 1.25], gap="large")
@@ -125,34 +135,68 @@ with left:
     st.markdown("## 📄 Upload Resume")
 
     st.caption(
-        "Upload your PDF or DOCX resume and let AI generate a complete developer portfolio."
+        "Upload your resume and let AI build your complete portfolio."
     )
 
     uploaded_file = st.file_uploader(
-        "Upload Resume",
+        "Resume",
         type=["pdf", "docx"],
-        label_visibility="collapsed",
+        label_visibility="collapsed"
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ======================================================
+    # ------------------------------------------------------
+    # PROFILE IMAGE
+    # ------------------------------------------------------
+
+    st.markdown("### 🖼 Profile Image")
+
+    profile_image = st.file_uploader(
+        "Profile Image",
+        type=["png", "jpg", "jpeg"],
+        label_visibility="collapsed"
+    )
+
+    if profile_image is not None:
+
+        st.session_state.profile_image = profile_image
+
+        st.image(
+            profile_image,
+            width=180
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------
     # THEME
-    # ======================================================
+    # ------------------------------------------------------
 
     st.markdown("### 🎨 Portfolio Theme")
 
     theme = st.selectbox(
-        "Theme",
+
+        "",
+
         [
+
             "Modern",
-            "Glass",
+
             "Dark",
+
+            "Glass",
+
             "Minimal",
-            "Cyberpunk",
+
+            "Cyberpunk"
+
         ],
+
         index=0,
-        label_visibility="collapsed",
+
+        label_visibility="collapsed"
+
     )
 
     st.session_state.theme = theme
@@ -160,28 +204,117 @@ with left:
     theme_info = {
 
         "Modern":
-        "✨ Clean and professional recruiter-friendly portfolio.",
-
-        "Glass":
-        "💎 Premium glassmorphism UI with elegant cards.",
+        "✨ Professional and recruiter friendly.",
 
         "Dark":
-        "🌙 Dark developer portfolio inspired by modern SaaS websites.",
+        "🌙 Developer inspired portfolio.",
+
+        "Glass":
+        "💎 Premium glassmorphism UI.",
 
         "Minimal":
-        "📄 Simple, elegant and distraction-free layout.",
+        "📄 Clean and elegant design.",
 
         "Cyberpunk":
-        "🚀 Neon futuristic developer portfolio.",
+        "🚀 Futuristic neon theme."
+
     }
 
     st.info(theme_info[theme])
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ======================================================
+    # ------------------------------------------------------
+    # COLOR
+    # ------------------------------------------------------
+
+    st.markdown("### 🎨 Accent Color")
+
+    color = st.color_picker(
+
+        "",
+
+        value=st.session_state.color,
+
+        label_visibility="collapsed"
+
+    )
+
+    st.session_state.color = color
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------
+    # FONT
+    # ------------------------------------------------------
+
+    st.markdown("### 🔤 Font")
+
+    font = st.selectbox(
+
+        "",
+
+        [
+
+            "Poppins",
+
+            "Inter",
+
+            "Roboto",
+
+            "Montserrat",
+
+            "Open Sans"
+
+        ],
+
+        label_visibility="collapsed"
+
+    )
+
+    st.session_state.font = font
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------
+    # GITHUB
+    # ------------------------------------------------------
+
+    st.markdown("### 🐙 GitHub Username")
+
+    github_username = st.text_input(
+
+        "",
+
+        placeholder="e.g. sanskriti050",
+
+        label_visibility="collapsed",
+        key="github_username"
+
+    )
+
+    # ------------------------------------------------------
+    # LEETCODE
+    # ------------------------------------------------------
+
+    st.markdown("### 🏆 LeetCode Username")
+
+    leetcode_username = st.text_input(
+
+        "",
+
+        placeholder="e.g. sanskriti050",
+
+        label_visibility="collapsed",
+         key="leetcode_username"
+
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------
     # AI STATUS
-    # ======================================================
+    # ------------------------------------------------------
 
     st.markdown("### 🤖 AI Status")
 
@@ -195,54 +328,18 @@ with left:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ======================================================
+    # ------------------------------------------------------
     # GENERATE BUTTON
-    # ======================================================
+    # ------------------------------------------------------
 
     generate = st.button(
+
         "🚀 Generate Portfolio",
-        use_container_width=True,
+
+        use_container_width=True
+
     )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ======================================================
-    # QUICK INFO
-    # ======================================================
-
-    st.markdown("### 📌 What AI Generates")
-
-    st.success("""
-✅ Portfolio Website
-
-✅ Resume Review
-
-✅ Resume Improvement
-
-✅ Cover Letter
-
-✅ Portfolio JSON
-
-✅ Live Preview
-""")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown("### ⚡ AI Pipeline")
-
-    st.write("1️⃣ Read Resume")
-
-    st.write("2️⃣ Extract Information")
-
-    st.write("3️⃣ Generate Portfolio")
-
-    st.write("4️⃣ Review Resume")
-
-    st.write("5️⃣ Improve Resume")
-
-    st.write("6️⃣ Generate Cover Letter")
-
-# ==========================================================
+    # ==========================================================
 # RIGHT PANEL
 # ==========================================================
 
@@ -251,106 +348,136 @@ with right:
     st.markdown("## 👀 Live Portfolio Preview")
 
     st.caption(
-        "Your AI-generated portfolio will appear here instantly after generation."
+        "Preview your AI generated portfolio before downloading."
     )
 
-    # ======================================================
-    # IF PORTFOLIO EXISTS
-    # ======================================================
+    # ------------------------------------------------------
+    # THEME BADGE
+    # ------------------------------------------------------
 
-    if (
-        st.session_state.generated
-        and st.session_state.portfolio_file
-        and os.path.exists(st.session_state.portfolio_file)
-    ):
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+
+        st.success(f"🎨 Theme : {st.session_state.theme}")
+
+    with col2:
+
+        st.info(f"🔤 Font : {st.session_state.font}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------
+    # COLOR PREVIEW
+    # ------------------------------------------------------
+
+    st.markdown("### Selected Accent Color")
+
+    st.markdown(
+        f"""
+        <div style="
+            width:100%;
+            height:35px;
+            border-radius:12px;
+            background:{st.session_state.color};
+            border:2px solid white;
+        ">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------
+    # LIVE PORTFOLIO
+    # ------------------------------------------------------
+
+    if st.session_state.generated and st.session_state.portfolio_file:
 
         try:
 
             with open(
                 st.session_state.portfolio_file,
                 "r",
-                encoding="utf-8",
+                encoding="utf-8"
             ) as f:
 
                 html = f.read()
 
             components.html(
-                html,
-                height=750,
-                scrolling=True,
-            )
 
-            st.success("✅ Live Portfolio Preview Ready")
+                html,
+
+                height=850,
+
+                scrolling=True
+
+            )
 
         except Exception as e:
 
-            st.error(f"Unable to load preview.\n\n{e}")
-
-    # ======================================================
-    # PLACEHOLDER
-    # ======================================================
+            st.error(
+                f"Unable to load preview.\n\n{e}"
+            )
 
     else:
 
         st.info(
-            "Generate your portfolio to see the live preview."
+            "Generate your portfolio to view the live preview."
         )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.markdown(
+            """
+            ### 🚀 Portfolio Preview
+
+            Your generated website will include:
+
+            ✅ Hero Section
+
+            ✅ About
+
+            ✅ Skills
+
+            ✅ Projects
+
+            ✅ Experience
+
+            ✅ Education
+
+            ✅ Certifications
+
+            ✅ GitHub Profile
+
+            ✅ LeetCode Profile
+
+            ✅ Contact Section
+
+            ✅ Responsive Design
+
+            ✅ Selected Theme
+
+            """
+        )
+
+        st.markdown("<br>", unsafe_allow_html=True)
 
         st.image(
-            "https://placehold.co/900x550/111827/FFFFFF?text=AI+Portfolio+Preview",
-            use_container_width=True,
+
+            "https://placehold.co/1200x700/0f172a/ffffff?text=Portfolio+Preview",
+
+            use_container_width=True
+
         )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.markdown("### 🚀 Preview Includes")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            st.success("""
-👤 Hero Section
-
-📖 About
-
-🛠 Skills
-
-💼 Projects
-""")
-
-        with col2:
-
-            st.success("""
-🎓 Education
-
-📜 Certifications
-
-📞 Contact
-
-🌐 Responsive Design
-""")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.warning(
-            "Preview will automatically update after AI generates your portfolio."
-        )
-# ==========================================================
+    # ==========================================================
 # GENERATE PORTFOLIO
 # ==========================================================
 
 if generate:
 
-    # Reset old values
-
-    st.session_state.generated = False
     st.session_state.error = None
-    st.session_state.portfolio_file = None
-    st.session_state.portfolio_data = None
-    st.session_state.resume_review = ""
-    st.session_state.improved_resume = ""
-    st.session_state.cover_letter = ""
 
     if uploaded_file is None:
 
@@ -364,9 +491,9 @@ if generate:
 
             status = st.empty()
 
-            # =====================================
-            # STEP 1
-            # =====================================
+            # --------------------------------------------------
+            # STEP 1 : READ RESUME
+            # --------------------------------------------------
 
             status.info("📄 Reading Resume...")
 
@@ -374,11 +501,11 @@ if generate:
 
             st.session_state.resume_text = resume_text
 
-            progress.progress(15)
+            progress.progress(10)
 
-            # =====================================
-            # STEP 2
-            # =====================================
+            # --------------------------------------------------
+            # STEP 2 : AI PORTFOLIO JSON
+            # --------------------------------------------------
 
             status.info("🤖 Extracting Resume Information...")
 
@@ -388,26 +515,11 @@ if generate:
 
             st.session_state.portfolio_data = portfolio_data
 
-            progress.progress(35)
+            progress.progress(25)
 
-            # =====================================
-            # STEP 3
-            # =====================================
-
-            status.info("🎨 Building Portfolio Website...")
-
-            portfolio_file = generate_portfolio(
-                portfolio_data,
-                st.session_state.theme
-            )
-
-            st.session_state.portfolio_file = portfolio_file
-
-            progress.progress(55)
-
-            # =====================================
-            # STEP 4
-            # =====================================
+            # --------------------------------------------------
+            # STEP 3 : RESUME REVIEW
+            # --------------------------------------------------
 
             status.info("📝 Reviewing Resume...")
 
@@ -417,39 +529,164 @@ if generate:
 
             st.session_state.resume_review = review
 
-            progress.progress(70)
+            progress.progress(40)
 
-            # =====================================
-            # STEP 5
-            # =====================================
+            # --------------------------------------------------
+            # STEP 4 : IMPROVE RESUME
+            # --------------------------------------------------
 
             status.info("✨ Improving Resume...")
 
-            improved = improve_resume(
+            improved_resume = improve_resume(
                 resume_text
             )
 
-            st.session_state.improved_resume = improved
+            st.session_state.resume_improved = improved_resume
 
-            progress.progress(85)
+            progress.progress(55)
 
-            # =====================================
-            # STEP 6
-            # =====================================
+            # --------------------------------------------------
+            # STEP 5 : COVER LETTER
+            # --------------------------------------------------
 
-            status.info("💌 Generating Cover Letter...")
+            status.info("📄 Generating Cover Letter...")
 
-            cover = generate_cover_letter(
+            cover_letter = generate_cover_letter(
                 resume_text
             )
 
-            st.session_state.cover_letter = cover
+            st.session_state.cover_letter = cover_letter
+
+            progress.progress(70)
+
+            # --------------------------------------------------
+            # STEP 6 : INTERVIEW QUESTIONS
+            # --------------------------------------------------
+
+            status.info("🎯 Preparing Interview Questions...")
+
+            interview_questions = generate_interview_questions(
+                resume_text
+            )
+
+            st.session_state.interview_questions = (
+                interview_questions
+            )
+
+            progress.progress(80)
+
+            # --------------------------------------------------
+            # STEP 7 : GITHUB PROFILE
+            # --------------------------------------------------
+
+            if st.session_state.github_username.strip():
+
+                status.info("🐙 Fetching GitHub Profile...")
+
+                github_data = get_github_profile(
+                    st.session_state.github_username
+                )
+
+                st.session_state.github_data = github_data
+
+            progress.progress(90)
+
+            # --------------------------------------------------
+            # STEP 8 : LEETCODE PROFILE
+            # --------------------------------------------------
+
+            if st.session_state.leetcode_username.strip():
+
+                status.info("🏆 Fetching LeetCode Profile...")
+
+                leetcode_data = get_leetcode_profile(
+                    st.session_state.leetcode_username
+                )
+
+                st.session_state.leetcode_data = (
+                    leetcode_data
+                )
+
+            progress.progress(95)
+                # --------------------------------------------------
+            # STEP 9 : GENERATE PORTFOLIO WEBSITE
+            # --------------------------------------------------
+
+            status.info("🎨 Building Portfolio Website...")
+
+            portfolio_file = generate_portfolio(
+
+                portfolio_data=portfolio_data,
+
+                theme=st.session_state.theme,
+
+                color=st.session_state.color,
+
+                font=st.session_state.font,
+
+                profile_image=st.session_state.profile_image,
+
+                github_data=st.session_state.github_data,
+
+                leetcode_data=st.session_state.leetcode_data
+
+            )
+
+            st.session_state.portfolio_file = portfolio_file
+
+            progress.progress(97)
+
+            # --------------------------------------------------
+            # STEP 10 : GENERATE ZIP
+            # --------------------------------------------------
+
+            status.info("📦 Creating ZIP Package...")
+
+            zip_file = generate_zip(
+
+                portfolio_file,
+
+                portfolio_data,
+
+                st.session_state.profile_image
+
+            )
+
+            st.session_state.zip_file = zip_file
+
+            progress.progress(98)
+
+            # --------------------------------------------------
+            # STEP 11 : GENERATE PDF
+            # --------------------------------------------------
+
+            status.info("📄 Creating Portfolio PDF...")
+
+            pdf_file = generate_pdf(
+
+                portfolio_file
+
+            )
+
+            st.session_state.pdf_file = pdf_file
+
+            progress.progress(99)
+
+            # --------------------------------------------------
+            # STEP 12 : EXPORT PROJECT
+            # --------------------------------------------------
+
+            status.info("🚀 Preparing Deployment Files...")
+
+            export_github_pages(portfolio_file)
+
+            export_netlify(portfolio_file)
 
             progress.progress(100)
 
-            # =====================================
-            # COMPLETE
-            # =====================================
+            # --------------------------------------------------
+            # FINISHED
+            # --------------------------------------------------
 
             st.session_state.generated = True
 
@@ -459,6 +696,10 @@ if generate:
 
             st.balloons()
 
+            st.success(
+                "Everything is ready!"
+            )
+
             st.rerun()
 
         except Exception as e:
@@ -467,702 +708,527 @@ if generate:
 
             st.session_state.error = str(e)
 
-            st.error(f"❌ {e}")
+            st.error(
+                f"❌ {str(e)}"
+            )
     # ==========================================================
-# AI RESULTS DASHBOARD
+# AI DASHBOARD
 # ==========================================================
 
 if st.session_state.generated:
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     st.markdown("---")
 
-    st.header("🤖 AI Results Dashboard")
+    st.header("📊 AI Analysis Dashboard")
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        [
-            "📄 Resume",
-            "🌐 Portfolio Data",
-            "📝 Resume Review",
-            "✨ Improved Resume",
-            "💌 Cover Letter",
-        ]
-    )
+    tabs = st.tabs([
+        "📄 Resume",
+        "🤖 Portfolio JSON",
+        "📈 Summary",
+        "📝 Resume Review",
+        "✨ Improved Resume",
+        "📄 Cover Letter",
+        "🎯 Interview Questions",
+        "🐙 GitHub",
+        "🏆 LeetCode"
+    ])
 
-    # ======================================================
-    # TAB 1
-    # ======================================================
+    # =====================================================
+    # TAB 1 : RESUME
+    # =====================================================
 
-    with tab1:
+    with tabs[0]:
 
-        st.subheader("📄 Extracted Resume")
+        st.subheader("Extracted Resume")
 
         st.text_area(
             "",
             st.session_state.resume_text,
-            height=450,
+            height=450
         )
 
-    # ======================================================
-    # TAB 2
-    # ======================================================
+    # =====================================================
+    # TAB 2 : JSON
+    # =====================================================
 
-    with tab2:
+    with tabs[1]:
 
-        st.subheader("🌐 Portfolio JSON")
+        st.subheader("Portfolio JSON")
 
         st.json(
             st.session_state.portfolio_data
         )
 
-    # ======================================================
-    # TAB 3
-    # ======================================================
+    # =====================================================
+    # TAB 3 : SUMMARY
+    # =====================================================
 
-    with tab3:
+    with tabs[2]:
 
-        st.subheader("📝 AI Resume Review")
+        data = st.session_state.portfolio_data
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        col1.metric(
+            "Skills",
+            len(data.get("skills", []))
+        )
+
+        col2.metric(
+            "Projects",
+            len(data.get("projects", []))
+        )
+
+        col3.metric(
+            "Experience",
+            len(data.get("experience", []))
+        )
+
+        col4.metric(
+            "Certificates",
+            len(data.get("certifications", []))
+        )
+
+        st.markdown("---")
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            st.markdown("### 👤 Basic Details")
+
+            st.write(
+                "**Name:**",
+                data.get("name", "-")
+            )
+
+            st.write(
+                "**Headline:**",
+                data.get("headline", "-")
+            )
+
+            st.write(
+                "**Email:**",
+                data.get("email", "-")
+            )
+
+        with c2:
+
+            st.markdown("### 📞 Contact")
+
+            st.write(
+                "**Phone:**",
+                data.get("phone", "-")
+            )
+
+            st.write(
+                "**GitHub:**",
+                data.get("github", "-")
+            )
+
+            st.write(
+                "**LinkedIn:**",
+                data.get("linkedin", "-")
+            )
+
+    # =====================================================
+    # TAB 4 : REVIEW
+    # =====================================================
+
+    with tabs[3]:
+
+        st.subheader("AI Resume Review")
 
         st.markdown(
             st.session_state.resume_review
         )
 
-    # ======================================================
-    # TAB 4
-    # ======================================================
+    # =====================================================
+    # TAB 5 : IMPROVED RESUME
+    # =====================================================
 
-    with tab4:
+    with tabs[4]:
 
-        st.subheader("✨ Improved Resume")
+        st.subheader("Improved Resume")
 
         st.text_area(
+
             "",
-            st.session_state.improved_resume,
-            height=500,
+
+            st.session_state.resume_improved,
+
+            height=500
+
         )
 
-    # ======================================================
-    # TAB 5
-    # ======================================================
+    # =====================================================
+    # TAB 6 : COVER LETTER
+    # =====================================================
 
-    with tab5:
+    with tabs[5]:
 
-        st.subheader("💌 AI Generated Cover Letter")
+        st.subheader("Cover Letter")
 
         st.text_area(
+
             "",
+
             st.session_state.cover_letter,
-            height=500,
-        )
-    # ==========================================================
-# PORTFOLIO ANALYTICS
-# ==========================================================
 
-if st.session_state.generated:
+            height=500
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    st.header("📊 Portfolio Analytics")
-
-    data = st.session_state.portfolio_data
-
-    # --------------------------------------------
-    # SAFE COUNTS
-    # --------------------------------------------
-
-    skills = data.get("skills", [])
-    projects = data.get("projects", [])
-    education = data.get("education", [])
-    experience = data.get("experience", [])
-    certifications = data.get("certifications", [])
-
-    c1, c2, c3, c4, c5 = st.columns(5)
-
-    with c1:
-        st.metric(
-            "💻 Skills",
-            len(skills)
         )
 
-    with c2:
-        st.metric(
-            "📂 Projects",
-            len(projects)
+    # =====================================================
+    # TAB 7 : INTERVIEW QUESTIONS
+    # =====================================================
+
+    with tabs[6]:
+
+        st.subheader("Interview Questions")
+
+        st.markdown(
+
+            st.session_state.interview_questions
+
         )
 
-    with c3:
-        st.metric(
-            "🏢 Experience",
-            len(experience)
-        )
+    # =====================================================
+    # TAB 8 : GITHUB
+    # =====================================================
 
-    with c4:
-        st.metric(
-            "🎓 Education",
-            len(education)
-        )
+    with tabs[7]:
 
-    with c5:
-        st.metric(
-            "📜 Certificates",
-            len(certifications)
-        )
+        st.subheader("GitHub Profile")
 
-    st.markdown("---")
-
-    # --------------------------------------------
-    # BASIC INFO
-    # --------------------------------------------
-
-    st.subheader("👤 Candidate Information")
-
-    info1, info2 = st.columns(2)
-
-    with info1:
-
-        st.success(f"**Name:** {data.get('name','-')}")
-
-        st.info(f"**Headline:** {data.get('headline','-')}")
-
-        st.write(f"📧 {data.get('email','-')}")
-
-        st.write(f"📱 {data.get('phone','-')}")
-
-    with info2:
-
-        st.write("### 🔗 Social Links")
-
-        github = data.get("github", "")
-        linkedin = data.get("linkedin", "")
+        github = st.session_state.github_data
 
         if github:
-            st.markdown(f"**GitHub:** {github}")
 
-        if linkedin:
-            st.markdown(f"**LinkedIn:** {linkedin}")
+            c1, c2, c3 = st.columns(3)
 
-    st.markdown("---")
-
-    # --------------------------------------------
-    # SKILLS
-    # --------------------------------------------
-
-    st.subheader("💻 Detected Skills")
-
-    if skills:
-
-        cols = st.columns(4)
-
-        for i, skill in enumerate(skills):
-
-            cols[i % 4].success(skill)
-
-    else:
-
-        st.info("No skills detected.")
-
-    st.markdown("---")
-
-    # --------------------------------------------
-    # PROJECTS
-    # --------------------------------------------
-
-    st.subheader("📂 Projects")
-
-    if projects:
-
-        for project in projects:
-
-            if isinstance(project, dict):
-
-                title = project.get(
-                    "title",
-                    project.get("name", "Project")
-                )
-
-                desc = project.get(
-                    "description",
-                    "No description available."
-                )
-
-                with st.expander(title):
-
-                    st.write(desc)
-
-                    tech = project.get(
-                        "tech_stack",
-                        []
-                    )
-
-                    if tech:
-
-                        st.write("**Tech Stack**")
-
-                        st.write(", ".join(tech))
-
-            else:
-
-                st.write(project)
-
-    else:
-
-        st.info("No projects found.")
-
-    st.markdown("---")
-
-    # --------------------------------------------
-    # EDUCATION
-    # --------------------------------------------
-
-    st.subheader("🎓 Education")
-
-    if education:
-
-        for edu in education:
-
-            if isinstance(edu, dict):
-
-                st.success(
-                    f"{edu.get('degree','')} | {edu.get('institute','')} | {edu.get('year','')}"
-                )
-
-            else:
-
-                st.success(edu)
-
-    else:
-
-        st.info("No education found.")
-
-    st.markdown("---")
-
-    # --------------------------------------------
-    # EXPERIENCE
-    # --------------------------------------------
-
-    st.subheader("🏢 Experience")
-
-    if experience:
-
-        for exp in experience:
-
-            if isinstance(exp, dict):
-
-                with st.expander(
-                    exp.get("role", "Experience")
-                ):
-
-                    st.write(
-                        f"**Company:** {exp.get('company','-')}"
-                    )
-
-                    st.write(
-                        f"**Duration:** {exp.get('duration','-')}"
-                    )
-
-            else:
-
-                st.write(exp)
-
-    else:
-
-        st.info("No experience detected.")
-
-    st.markdown("---")
-
-    # --------------------------------------------
-    # CERTIFICATIONS
-    # --------------------------------------------
-
-    st.subheader("📜 Certifications")
-
-    if certifications:
-
-        for cert in certifications:
-
-            if isinstance(cert, dict):
-
-                st.success(
-                    cert.get("title", "-")
-                )
-
-            else:
-
-                st.success(cert)
-
-    else:
-
-        st.info("No certifications found.")
-    # ==========================================================
-# EXPORT CENTER
-# ==========================================================
-
-if st.session_state.generated:
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    st.header("📥 Export Portfolio")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    # ==========================================
-    # DOWNLOAD HTML
-    # ==========================================
-
-    with col1:
-
-        with open(
-            st.session_state.portfolio_file,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-            html = f.read()
-
-        st.download_button(
-            label="📄 Download HTML",
-            data=html,
-            file_name="index.html",
-            mime="text/html",
-            use_container_width=True
-        )
-
-    # ==========================================
-    # DOWNLOAD JSON
-    # ==========================================
-
-    with col2:
-
-        st.download_button(
-
-            label="🤖 Download JSON",
-
-            data=json.dumps(
-                st.session_state.portfolio_data,
-                indent=4
-            ),
-
-            file_name="portfolio.json",
-
-            mime="application/json",
-
-            use_container_width=True
-        )
-
-    # ==========================================
-    # OPEN PORTFOLIO
-    # ==========================================
-
-    with col3:
-
-        if st.button(
-            "🌐 Open Portfolio",
-            use_container_width=True
-        ):
-
-            webbrowser.open(
-                "file://" + os.path.abspath(
-                    st.session_state.portfolio_file
-                )
+            c1.metric(
+                "Followers",
+                github.get("followers", 0)
             )
 
-            st.success("Portfolio opened successfully.")
+            c2.metric(
+                "Following",
+                github.get("following", 0)
+            )
 
-    # ==========================================
-    # DOWNLOAD RESUME
-    # ==========================================
+            c3.metric(
+                "Repositories",
+                github.get("public_repos", 0)
+            )
 
-    with col4:
+            st.write(
+                "**Profile:**",
+                github.get("html_url", "-")
+            )
 
-        st.download_button(
+        else:
 
-            label="📄 Resume.txt",
+            st.info(
+                "GitHub username not provided."
+            )
 
-            data=st.session_state.resume_text,
+    # =====================================================
+    # TAB 9 : LEETCODE
+    # =====================================================
 
-            file_name="resume.txt",
+    with tabs[8]:
 
-            mime="text/plain",
+        st.subheader("LeetCode Profile")
 
-            use_container_width=True
-        )
+        lc = st.session_state.leetcode_data
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        if lc:
 
+            c1, c2 = st.columns(2)
+
+            c1.metric(
+                "Solved",
+                lc.get("solved", 0)
+            )
+
+            c2.metric(
+                "Ranking",
+                lc.get("ranking", "-")
+            )
+
+            st.write(
+                "**Profile:**",
+                lc.get("profile", "-")
+            )
+
+        else:
+
+            st.info(
+                "LeetCode username not provided."
+            )
     # ==========================================================
-    # QUICK EXPORT INFO
-    # ==========================================================
-
-    st.success("""
-### ✅ Generated Files
-
-📄 index.html
-
-🤖 portfolio.json
-
-📄 resume.txt
-
-🌐 Live Portfolio Preview
-""")
-
-    # ==========================================================
-    # EXPORT SUMMARY
-    # ==========================================================
-
-    with st.expander("📦 Export Summary", expanded=False):
-
-        st.write("Your generated portfolio package contains:")
-
-        st.markdown("""
-- ✅ Responsive HTML Portfolio
-- ✅ AI Extracted Portfolio JSON
-- ✅ Resume Text
-- ✅ Live Preview
-- ✅ Ready for GitHub Pages
-- ✅ Ready for Netlify
-- ✅ Ready for Vercel
-""")
-
-        st.info(
-            "Upcoming Update: ZIP Download, One-click GitHub Deployment and Netlify Export."
-        )
-    # ==========================================================
-# AI ANALYTICS DASHBOARD
+# DOWNLOAD & EXPORT CENTER
 # ==========================================================
 
 if st.session_state.generated:
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     st.markdown("---")
 
-    st.header("📈 AI Analytics Dashboard")
+    st.header("📥 Download & Export Portfolio")
 
-    data = st.session_state.portfolio_data
+    download_tab, deploy_tab = st.tabs(
+        [
+            "📥 Downloads",
+            "🚀 Deployment"
+        ]
+    )
 
-    skills = data.get("skills", [])
-    projects = data.get("projects", [])
-    experience = data.get("experience", [])
-    education = data.get("education", [])
-    certifications = data.get("certifications", [])
+    # ======================================================
+    # DOWNLOAD TAB
+    # ======================================================
 
-    # =====================================================
-    # SCORE CARDS
-    # =====================================================
+    with download_tab:
 
-    c1, c2, c3, c4 = st.columns(4)
+        d1, d2 = st.columns(2)
 
-    with c1:
-        st.metric(
-            "💻 Skills",
-            len(skills)
-        )
+        # ---------------------------------------------
+        # LEFT COLUMN
+        # ---------------------------------------------
 
-    with c2:
-        st.metric(
-            "📂 Projects",
-            len(projects)
-        )
+        with d1:
 
-    with c3:
-        st.metric(
-            "🏢 Experience",
-            len(experience)
-        )
+            st.subheader("Portfolio Files")
 
-    with c4:
-        st.metric(
-            "📜 Certificates",
-            len(certifications)
-        )
+            # HTML
 
-    st.markdown("---")
+            if st.session_state.portfolio_file:
 
-    # =====================================================
-    # PROFILE COMPLETENESS
-    # =====================================================
+                with open(
+                    st.session_state.portfolio_file,
+                    "r",
+                    encoding="utf-8"
+                ) as f:
 
-    st.subheader("✅ Profile Completeness")
+                    html = f.read()
 
-    score = 0
+                st.download_button(
 
-    if data.get("name"):
-        score += 10
+                    "🌐 Download HTML",
 
-    if data.get("headline"):
-        score += 10
+                    data=html,
 
-    if skills:
-        score += 20
+                    file_name="portfolio.html",
 
-    if projects:
-        score += 20
+                    mime="text/html",
 
-    if experience:
-        score += 15
+                    use_container_width=True
 
-    if education:
-        score += 15
+                )
 
-    if certifications:
-        score += 5
+            # JSON
 
-    if data.get("github"):
-        score += 3
+            st.download_button(
 
-    if data.get("linkedin"):
-        score += 2
+                "🤖 Download JSON",
 
-    st.progress(score / 100)
+                data=json.dumps(
 
-    st.success(f"Portfolio Completeness : {score}%")
+                    st.session_state.portfolio_data,
 
-    st.markdown("---")
+                    indent=4
 
-    # =====================================================
-    # AI RECOMMENDATIONS
-    # =====================================================
+                ),
 
-    st.subheader("🤖 AI Suggestions")
+                file_name="portfolio.json",
 
-    suggestions = []
+                mime="application/json",
 
-    if len(skills) < 5:
-        suggestions.append(
-            "➕ Add more technical skills."
-        )
+                use_container_width=True
 
-    if len(projects) < 3:
-        suggestions.append(
-            "📂 Add more projects."
-        )
+            )
 
-    if len(experience) == 0:
-        suggestions.append(
-            "💼 Add internship or experience."
-        )
+            # Resume Text
 
-    if len(certifications) == 0:
-        suggestions.append(
-            "📜 Add certifications."
-        )
+            st.download_button(
 
-    if not data.get("github"):
-        suggestions.append(
-            "🔗 Add GitHub profile."
-        )
+                "📄 Download Resume Text",
 
-    if not data.get("linkedin"):
-        suggestions.append(
-            "💼 Add LinkedIn profile."
-        )
+                data=st.session_state.resume_text,
 
-    if suggestions:
+                file_name="resume.txt",
 
-        for item in suggestions:
+                mime="text/plain",
 
-            st.warning(item)
+                use_container_width=True
 
-    else:
+            )
 
-        st.success(
-            "Excellent! Your portfolio looks strong."
-        )
+        # ---------------------------------------------
+        # RIGHT COLUMN
+        # ---------------------------------------------
 
-    st.markdown("---")
+        with d2:
 
-    # =====================================================
-    # RESUME STRENGTH
-    # =====================================================
+            st.subheader("Generated Files")
 
-    st.subheader("🚀 Resume Strength")
+            # ZIP
 
-    strengths = [
-        ("Skills", len(skills), 10),
-        ("Projects", len(projects), 6),
-        ("Experience", len(experience), 3),
-        ("Education", len(education), 2),
-        ("Certifications", len(certifications), 5),
-    ]
+            if st.session_state.zip_file:
 
-    for title, value, target in strengths:
+                with open(
+                    st.session_state.zip_file,
+                    "rb"
+                ) as f:
 
-        percentage = min(value / target, 1.0)
+                    st.download_button(
 
-        st.write(title)
+                        "📦 Download ZIP",
 
-        st.progress(percentage)
+                        data=f,
 
-        st.caption(f"{value} / {target}")
+                        file_name="PortfolioAI.zip",
 
-    st.markdown("---")
+                        mime="application/zip",
 
-    # =====================================================
-    # PROFILE SUMMARY
-    # =====================================================
+                        use_container_width=True
 
-    st.subheader("👤 Candidate Summary")
+                    )
 
-    st.info(f"""
-### {data.get("name","Unknown")}
+            # PDF
 
-**Headline**
+            if st.session_state.pdf_file:
 
-{data.get("headline","Not Available")}
+                with open(
+                    st.session_state.pdf_file,
+                    "rb"
+                ) as f:
 
-**Email**
+                    st.download_button(
 
-{data.get("email","-")}
+                        "📄 Download PDF",
 
-**Phone**
+                        data=f,
 
-{data.get("phone","-")}
+                        file_name="Portfolio.pdf",
+
+                        mime="application/pdf",
+
+                        use_container_width=True
+
+                    )
+
+            # Open Portfolio
+
+            if st.button(
+
+                "🌍 Open Portfolio",
+
+                use_container_width=True
+
+            ):
+
+                webbrowser.open(
+
+                    "file://" +
+
+                    os.path.abspath(
+
+                        st.session_state.portfolio_file
+
+                    )
+
+                )
+
+                st.success(
+
+                    "Portfolio opened in browser."
+
+                )
+
+    # ======================================================
+    # DEPLOYMENT TAB
+    # ======================================================
+
+    with deploy_tab:
+
+        st.subheader("Deployment Ready")
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            st.info("""
+
+### GitHub Pages
+
+One-click export
+
+Repository Ready
+
+Deploy Ready
+
 """)
 
-    st.markdown("---")
+            if st.button(
 
-    # =====================================================
-    # AI BADGES
-    # =====================================================
+                "🚀 Export GitHub Pages",
 
-    st.subheader("🏅 AI Portfolio Badges")
+                use_container_width=True
 
-    b1, b2, b3 = st.columns(3)
+            ):
 
-    with b1:
+                export_github_pages(
 
-        if len(projects) >= 3:
+                    st.session_state.portfolio_file
 
-            st.success("🚀 Project Ready")
+                )
 
-        else:
+                st.success(
 
-            st.warning("Need More Projects")
+                    "GitHub Pages files created."
 
-    with b2:
+                )
 
-        if len(skills) >= 8:
+        with c2:
 
-            st.success("💻 Skill Expert")
+            st.info("""
 
-        else:
+### Netlify
 
-            st.warning("Need More Skills")
+Drag & Drop Ready
 
-    with b3:
+Production Ready
 
-        if data.get("github"):
+""")
 
-            st.success("🌐 GitHub Ready")
+            if st.button(
 
-        else:
+                "🌐 Export Netlify",
 
-            st.warning("GitHub Missing")
+                use_container_width=True
+
+            ):
+
+                export_netlify(
+
+                    st.session_state.portfolio_file
+
+                )
+
+                st.success(
+
+                    "Netlify package created."
+
+                )
+
+    st.success(
+
+        "✅ Portfolio is ready for deployment."
+
+    )
     # ==========================================================
 # ERROR PANEL
 # ==========================================================
@@ -1170,10 +1236,11 @@ if st.session_state.generated:
 if st.session_state.error:
 
     st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
     st.error("❌ Something went wrong while generating the portfolio.")
 
-    with st.expander("🐞 Show Error Details"):
+    with st.expander("Show Error Details"):
 
         st.code(
             st.session_state.error,
@@ -1185,214 +1252,205 @@ if st.session_state.error:
 # ==========================================================
 
 st.markdown("<br>", unsafe_allow_html=True)
-
 st.markdown("---")
 
-st.header("💡 Tips for Better Portfolio")
+st.header("💡 Tips for Best Results")
 
-tip1, tip2 = st.columns(2)
+left_tip, right_tip = st.columns(2)
 
-with tip1:
+with left_tip:
 
     st.success("""
-### ✅ Resume Tips
 
-- Use ATS Friendly Resume
+### Resume Tips
 
-- Add 3-5 Projects
+✔ ATS Friendly Resume
 
-- Mention Technical Skills
+✔ Mention GitHub
 
-- Keep GitHub Updated
+✔ Mention LinkedIn
 
-- Add LinkedIn Profile
+✔ Add Projects
 
-- Mention Certifications
+✔ Add Skills
 
-- Add Internship Experience
+✔ Add Internship
+
+✔ Use Action Verbs
+
+✔ Keep Resume Updated
+
 """)
 
-with tip2:
+with right_tip:
 
     st.info("""
-### 🚀 Portfolio Tips
 
-- Upload latest resume
+### Portfolio Tips
 
-- Keep project descriptions clear
+🚀 Upload Professional Photo
 
-- Mention tech stack
+🚀 Choose Theme Carefully
 
-- Add achievements
+🚀 Add GitHub Username
 
-- Include GitHub links
+🚀 Add LeetCode Username
 
-- Use professional headline
+🚀 Download ZIP
 
-- Add contact information
+🚀 Deploy on GitHub Pages
+
+🚀 Deploy on Netlify
+
 """)
 
 # ==========================================================
-# FEATURE ROADMAP
-# ==========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("---")
-
-st.header("🛣 Roadmap")
-
-road1, road2 = st.columns(2)
-
-with road1:
-
-    st.success("""
-### ✅ Current Features
-
-✔ Resume Parsing
-
-✔ AI Portfolio Generation
-
-✔ Live Preview
-
-✔ Resume Review
-
-✔ Resume Improvement
-
-✔ Cover Letter
-
-✔ HTML Download
-
-✔ JSON Export
-
-✔ Portfolio Analytics
-""")
-
-with road2:
-
-    st.warning("""
-### 🚀 Upcoming Features
-
-⬜ ZIP Download
-
-⬜ GitHub Deployment
-
-⬜ Netlify Deployment
-
-⬜ Portfolio Themes
-
-⬜ Dark / Light Mode
-
-⬜ AI Chat Assistant
-
-⬜ Portfolio Hosting
-
-⬜ Resume ATS Score
-
-⬜ AI Interview Questions
-""")
-
-# ==========================================================
-# FAQ
+# PROJECT STATISTICS
 # ==========================================================
 
 st.markdown("<br>", unsafe_allow_html=True)
-
 st.markdown("---")
 
-st.header("❓ Frequently Asked Questions")
+st.header("📈 Portfolio Statistics")
 
-with st.expander("How does PortfolioAI work?"):
+c1, c2, c3, c4 = st.columns(4)
 
-    st.write("""
-PortfolioAI extracts information from your resume using AI,
-converts it into structured JSON,
-and generates a professional portfolio website automatically.
-""")
+c1.metric(
+    "Themes",
+    "5"
+)
 
-with st.expander("Which resume formats are supported?"):
+c2.metric(
+    "Export Formats",
+    "5"
+)
 
-    st.write("""
-• PDF
+c3.metric(
+    "AI Features",
+    "6"
+)
 
-• DOCX
-""")
-
-with st.expander("Can I deploy my portfolio?"):
-
-    st.write("""
-Yes.
-
-The generated HTML can be deployed on:
-
-• GitHub Pages
-
-• Netlify
-
-• Vercel
-
-• Firebase Hosting
-""")
-
-with st.expander("Which AI model is used?"):
-
-    st.write("""
-Current Version
-
-• Groq API
-
-• Llama 3.3 70B Versatile
-""")
+c4.metric(
+    "Deployment",
+    "2"
+)
 
 # ==========================================================
-# ABOUT PROJECT
+# FEATURE CHECKLIST
 # ==========================================================
 
 st.markdown("<br>", unsafe_allow_html=True)
-
 st.markdown("---")
 
-with st.expander("ℹ About PortfolioAI", expanded=False):
+st.header("✅ Features Included")
+
+st.markdown("""
+
+### AI
+
+- ✅ Resume Parser
+- ✅ Portfolio JSON Generator
+- ✅ Resume Review
+- ✅ Resume Improver
+- ✅ Cover Letter Generator
+- ✅ Interview Question Generator
+
+---
+
+### Portfolio
+
+- ✅ HTML Portfolio
+- ✅ Live Preview
+- ✅ Multiple Themes
+- ✅ Color Customization
+- ✅ Font Customization
+- ✅ Profile Image Upload
+
+---
+
+### Integrations
+
+- ✅ GitHub Profile
+- ✅ LeetCode Profile
+
+---
+
+### Export
+
+- ✅ HTML
+- ✅ JSON
+- ✅ ZIP
+- ✅ PDF
+
+---
+
+### Deployment
+
+- ✅ GitHub Pages
+- ✅ Netlify Ready
+
+""")
+
+# ==========================================================
+# ABOUT
+# ==========================================================
+
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("---")
+
+with st.expander("ℹ About PortfolioAI"):
 
     st.markdown("""
-# 🚀 PortfolioAI
 
-PortfolioAI is an AI-powered application that converts a resume
-into a beautiful portfolio website automatically.
+# 🚀 PortfolioAI v2.0
 
----
+PortfolioAI is an AI-powered portfolio generator.
 
-### Features
-
-- 📄 Resume Parsing
-
-- 🤖 AI Portfolio Generation
-
-- 👀 Live Portfolio Preview
-
-- 📊 Portfolio Analytics
-
-- 📝 Resume Review
-
-- ✨ Resume Improvement
-
-- 💌 Cover Letter Generation
-
-- 📥 HTML Export
-
-- 🤖 JSON Export
+It converts a resume into a beautiful developer portfolio.
 
 ---
 
-### Tech Stack
+## Features
+
+- Resume Parsing
+
+- AI Portfolio Generator
+
+- Resume Review
+
+- Resume Improvement
+
+- Cover Letter
+
+- Interview Questions
+
+- Live Portfolio Preview
+
+- Profile Image Support
+
+- Multiple Themes
+
+- GitHub Integration
+
+- LeetCode Integration
+
+- ZIP Export
+
+- PDF Export
+
+- GitHub Pages Export
+
+- Netlify Export
+
+---
+
+## Tech Stack
 
 - Python
 
 - Streamlit
 
 - Groq API
-
-- Llama 3.3 70B
 
 - Jinja2
 
@@ -1401,152 +1459,7 @@ into a beautiful portfolio website automatically.
 - CSS
 
 - JavaScript
-""")
 
-# ==========================================================
-# PROJECT INFORMATION
-# ==========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.info("""
-🚀 PortfolioAI Version : 1.0
-
-Made with ❤️ using
-
-• Python
-
-• Streamlit
-
-• Groq AI
-
-• HTML
-
-• CSS
-
-• Jinja2
-""")
-
-# ==========================================================
-# RESET APPLICATION
-# ==========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("---")
-
-st.header("⚙ Application Controls")
-
-c1, c2 = st.columns(2)
-
-with c1:
-
-    if st.button(
-        "🔄 Generate New Portfolio",
-        use_container_width=True
-    ):
-
-        keys = [
-            "resume_text",
-            "portfolio_data",
-            "portfolio_file",
-            "resume_review",
-            "improved_resume",
-            "cover_letter",
-            "generated",
-            "error",
-        ]
-
-        for key in keys:
-
-            if key in st.session_state:
-
-                del st.session_state[key]
-
-        st.success("Application Reset Successfully.")
-
-        st.rerun()
-
-with c2:
-
-    if st.session_state.generated:
-
-        st.success("✅ Portfolio Ready")
-
-    else:
-
-        st.info("Waiting for Resume Upload")
-
-# ==========================================================
-# SYSTEM INFORMATION
-# ==========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("---")
-
-st.header("🖥 System Status")
-
-s1, s2, s3, s4 = st.columns(4)
-
-with s1:
-
-    st.metric(
-        "AI Model",
-        "Llama 3.3"
-    )
-
-with s2:
-
-    st.metric(
-        "Framework",
-        "Streamlit"
-    )
-
-with s3:
-
-    st.metric(
-        "Version",
-        "v1.0"
-    )
-
-with s4:
-
-    st.metric(
-        "Status",
-        "Online"
-    )
-
-# ==========================================================
-# DEVELOPER INFORMATION
-# ==========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("---")
-
-st.header("👩‍💻 Developer")
-
-st.success("""
-**PortfolioAI**
-
-Created using
-
-• Python
-
-• Streamlit
-
-• Groq API
-
-• Llama 3.3 70B
-
-• HTML
-
-• CSS
-
-• Jinja2
-
-Designed to automatically convert resumes into modern portfolio websites.
 """)
 
 # ==========================================================
