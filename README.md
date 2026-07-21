@@ -1,74 +1,149 @@
-# 🚀 PortfolioAI
+# 🚀 PortfolioAI — AI Powered Resume to Portfolio Generator
 
-> Transform any resume into a beautiful, responsive developer portfolio website using AI.
+<p align="center">
 
-PortfolioAI is an AI-powered web application built with **Streamlit**, **Groq Llama 3.3**, and **Jinja2** that automatically analyzes a resume and generates a modern portfolio website with live preview, resume insights, cover letter generation, and interview preparation.
+<img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+
+<img src="https://img.shields.io/badge/Streamlit-Web_App-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white"/>
+
+<img src="https://img.shields.io/badge/Groq-LLM-00C853?style=for-the-badge"/>
+
+<img src="https://img.shields.io/badge/Jinja2-Template-B41717?style=for-the-badge"/>
+
+<img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge"/>
+
+</p>
 
 ---
 
-## ✨ Features
+## 🌟 Overview
 
-### 📄 Resume Parsing
-- Upload PDF or DOCX resume
-- Automatic text extraction
-- AI-powered resume understanding
+**PortfolioAI** is an AI-powered web application that transforms a resume into a beautiful, modern, and responsive portfolio website in just a few seconds.
 
-### 🤖 AI Portfolio Generation
-- Extracts structured portfolio data
-- Generates professional portfolio website
-- Live portfolio preview
-- HTML export
+Instead of manually designing a portfolio, users simply upload their resume, and PortfolioAI uses an LLM to extract structured information, generate professional content, and build a complete portfolio website automatically.
 
-### 🧠 AI Resume Analysis
-- Resume Review
-- Resume Improvement Suggestions
-- ATS-Friendly Feedback
-- Professional Summary Generation
+The application also includes multiple AI-powered career tools such as resume analysis, resume improvement, cover letter generation, interview question generation, and export utilities.
 
-### 💌 AI Career Assistant
-- Cover Letter Generator
-- Interview Question Generator
-- Portfolio JSON Export
+---
 
-### 🎨 Portfolio Features
-- Responsive Design
-- Modern UI
-- Live Preview
-- HTML Download
-- JSON Download
-- Resume Export
+# ✨ Features
+
+### 🤖 AI Features
+
+* AI Resume Parsing
+* AI Portfolio JSON Generation
+* AI Resume Review
+* AI Resume Improvement
+* AI Cover Letter Generator
+* AI Interview Questions Generator
+
+---
+
+### 🌐 Portfolio Generator
+
+* Professional Portfolio Website
+* Responsive Design
+* Live Portfolio Preview
+* HTML Portfolio Export
+* JSON Export
+* ZIP Export
+* PDF Export
+
+---
+
+### 🎨 Customization
+
+* Portfolio Theme Selection
+* Accent Color Selection
+* Font Selection
+* Profile Image Upload *(In Progress)*
+
+---
+
+### 🚀 Deployment
+
+* GitHub Pages Export
+* Netlify Export
+
+---
+
+### 📊 Dashboard
+
+* Resume Preview
+* Portfolio JSON Viewer
+* AI Summary
+* Portfolio Statistics
+
+---
+
+# 🖼 Application Workflow
+
+```
+Resume Upload
+        │
+        ▼
+Resume Parsing
+        │
+        ▼
+Groq AI Analysis
+        │
+        ▼
+Portfolio JSON
+        │
+        ▼
+Portfolio Website
+        │
+        ▼
+Preview + Download + Export
+```
 
 ---
 
 # 🛠 Tech Stack
 
-### Frontend
-- Streamlit
-- HTML5
-- CSS3
-- Jinja2 Templates
+## Frontend
 
-### Backend
-- Python
-
-### AI
-- Groq API
-- Llama 3.3 70B Versatile
-
-### Libraries
-- Streamlit
-- Jinja2
-- python-dotenv
-- PyPDF2
-- python-docx
-- Groq
+* Streamlit
+* HTML5
+* CSS3
+* JavaScript
+* Jinja2 Templates
 
 ---
 
-# 📂 Project Structure
+## Backend
 
-```text
+* Python
+* Streamlit
+* Jinja2
+
+---
+
+## AI
+
+* Groq API
+* Llama 3.3 70B Versatile
+
+---
+
+## Libraries
+
+* streamlit
+* groq
+* python-dotenv
+* Jinja2
+* ReportLab
+* requests
+* python-docx
+* PyPDF2
+
+---
+
+# 📁 Project Structure
+
+```
 PortfolioAI/
+
 │
 ├── app.py
 ├── ai.py
@@ -76,75 +151,51 @@ PortfolioAI/
 ├── generator.py
 ├── styles.py
 ├── components.py
-├── requirements.txt
-├── README.md
-├── .gitignore
-├── .env.example
 │
 ├── templates/
-│   └── portfolio.html
+│     └── portfolio.html
+│
+├── themes/
+│     ├── modern.css
+│     ├── dark.css
+│     ├── glass.css
+│     ├── minimal.css
+│     └── cyberpunk.css
 │
 ├── generated/
-│   ├── index.html
-│   ├── portfolio.json
-│   └── resume.txt
 │
-└── assets/
+├── assets/
+│
+├── requirements.txt
+├── .env
+└── README.md
 ```
 
 ---
 
-# 🚀 Installation
+# ⚙ Installation
 
-## Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/PortfolioAI.git
-```
+Clone the repository
 
 ```bash
+git clone https://github.com/yourusername/PortfolioAI.git
+
 cd PortfolioAI
 ```
 
----
-
-## Create Virtual Environment
-
-```bash
-python -m venv venv
-```
-
-Windows
-
-```bash
-venv\Scripts\activate
-```
-
-Mac/Linux
-
-```bash
-source venv/bin/activate
-```
-
----
-
-## Install Dependencies
+Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## Create .env
+Create a **.env** file
 
 ```env
-GROQ_API_KEY=YOUR_API_KEY
+GROQ_API_KEY=your_groq_api_key
 ```
 
----
-
-## Run
+Run the application
 
 ```bash
 streamlit run app.py
@@ -152,87 +203,126 @@ streamlit run app.py
 
 ---
 
+# 📄 How to Use
+
+1. Upload Resume (PDF/DOCX)
+2. Select Portfolio Theme
+3. Choose Accent Color
+4. Choose Font
+5. Enter GitHub Username *(optional)*
+6. Enter LeetCode Username *(optional)*
+7. Click **Generate Portfolio**
+8. Preview Portfolio
+9. Download HTML / JSON / ZIP / PDF
+10. Deploy using GitHub Pages or Netlify
+
+---
+
+# 📦 Export Options
+
+* HTML Portfolio
+* Portfolio JSON
+* ZIP Package
+* PDF Portfolio
+* GitHub Pages Folder
+* Netlify Folder
+
+---
+
 # 📸 Screenshots
 
-### Home Page
+Add screenshots here after deployment.
 
-<img src="assets/home.png" width="100%">
+Example:
 
----
+```
+Home Screen
 
-### Portfolio Preview
+Upload Resume
 
-<img src="assets/portfolio.png" width="100%">
+Portfolio Preview
 
----
+AI Dashboard
 
-### Resume Analysis
+Generated Portfolio
 
-<img src="assets/review.png" width="100%">
-
----
-
-# 🌟 Upcoming Features
-
-- Multiple Portfolio Themes
-- GitHub Pages Export
-- Netlify Deployment
-- ZIP Download
-- Portfolio PDF Export
-- Custom Domain Support
-- Profile Image Upload
-- AI Theme Generator
-
----
-
-# 💡 Why PortfolioAI?
-
-Instead of manually creating a portfolio website, PortfolioAI automatically transforms your resume into a professional portfolio in just a few seconds.
-
-It helps students, developers, and job seekers quickly showcase their skills and projects with minimal effort.
-
----
-
-# 🤝 Contributing
-
-Contributions are welcome!
-
-1. Fork the repository
-2. Create a new branch
-
-```bash
-git checkout -b feature-name
+Export Section
 ```
 
-3. Commit changes
+---
 
-```bash
-git commit -m "Add new feature"
-```
+# 🚀 Future Enhancements
 
-4. Push
+* Real Multiple Themes
+* GitHub Statistics Integration
+* LeetCode Statistics Integration
+* Theme Switching Inside Portfolio
+* Portfolio Chatbot
+* AI Job Match Score
+* Resume vs Portfolio Comparison
+* Portfolio Analytics
+* Contact Form Integration
+* SEO Optimization
+* One-Click Deployment
+* Vercel Export
 
-```bash
-git push origin feature-name
-```
+---
 
-5. Open a Pull Request
+# 🎯 Why PortfolioAI?
+
+✔ Converts resumes into professional portfolio websites
+
+✔ Uses LLMs for intelligent content generation
+
+✔ Eliminates manual portfolio building
+
+✔ Includes multiple AI career tools
+
+✔ Export-ready for deployment
+
+✔ Beginner-friendly interface
+
+---
+
+# 💡 Learning Outcomes
+
+This project demonstrates practical experience with:
+
+* Large Language Models (LLMs)
+* Prompt Engineering
+* Resume Parsing
+* AI Content Generation
+* Jinja2 Templating
+* Streamlit Application Development
+* JSON Processing
+* File Handling
+* PDF Generation
+* ZIP Packaging
+* Responsive Web Design
+* Deployment Workflows
+
+---
+
+# 👨‍💻 Author
+
+**Sanskriti Agarwal**
+
+B.Tech – Artificial Intelligence & Machine Learning
+
+GLA University, Mathura
+
+GitHub: https://github.com/sanskriti050
 
 ---
 
 # 📜 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License**.
 
 ---
 
-# 👩‍💻 Author
+## ⭐ Support
 
-**Sanskriti Agarwal**
+If you found this project useful, consider giving it a ⭐ on GitHub.
 
-- GitHub: https://github.com/sanskriti050
-- LinkedIn: *(Add your LinkedIn profile here)*
-
----
-
-⭐ If you like this project, consider giving it a Star!
+It helps others discover the project and motivates future improvements.
